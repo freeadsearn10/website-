@@ -16,33 +16,73 @@ if (rp_current_user()) {
 }
 
 $error = '';
+$loginCaptchaType = function_exists('rp_get_setting') ? rp_get_setting('login_captcha_type', 'none') : 'none';
+$recaptchaSiteKey = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_site_key', '') : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-    if ($email === '' || $password === '') {
-        $error = 'Please enter email and password.';
-    } else {
-        try {
-            $pdo = rp_get_pdo();
-            $stmt = $pdo->prepare('SELECT id, password_hash, status FROM ' . RP_DB_PREFIX . 'users WHERE email = :email LIMIT 1');
-            $stmt->execute(array(':email' => $email));
-            $user = $stmt->fetch();
-
-            if (!$user || !password_verify($password, $user['password_hash'])) {
-                $error = 'Invalid credentials.';
-            } elseif ($user['status'] !== 'active') {
-                $error = 'Your account is banned or inactive.';
-            } else {
-                $_SESSION['user_id'] = $user['id'];
-                header('Location: portal');
-                exit;
+    // Captcha check
+    if ($loginCaptchaType === 'math') {
+        $answer = isset($_POST['captcha_answer']) ? trim($_POST['captcha_answer']) : '';
+        $expected = isset($_SESSION['login_math_answer']) ? $_SESSION['login_math_answer'] : '';
+        if ($answer === '' || strval($expected) !== $answer) {
+            $error = 'Captcha is incorrect.';
+        }
+    } elseif ($loginCaptchaType === 'google') {
+        $token = isset($_POST['g-recaptcha-response']) ? $_POST['g-recaptcha-response'] : '';
+        $secret = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_secret_key', '') : '';
+        if ($secret && $token) {
+            $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secret) .
+                '&response=' . urlencode($token) . '&remoteip=' . urlencode($_SERVER['REMOTE_ADDR']);
+            $verifyResponse = @file_get_contents($verifyUrl);
+            $ok = false;
+            if ($verifyResponse !== false) {
+                $data = json_decode($verifyResponse, true);
+                $ok = isset($data['success']) && $data['success'];
             }
-        } catch (Exception $e) {
-            $error = 'Login failed.';
+            if (!$ok) {
+                $error = 'Captcha verification failed.';
+            }
+        } else {
+            $error = 'Captcha verification failed.';
         }
     }
+
+    if ($error === '') {
+        if ($email === '' || $password === '') {
+            $error = 'Please enter email and password.';
+        } else {
+            try {
+                $pdo = rp_get_pdo();
+                $stmt = $pdo->prepare('SELECT id, password_hash, status FROM ' . RP_DB_PREFIX . 'users WHERE email = :email LIMIT 1');
+                $stmt->execute(array(':email' => $email));
+                $user = $stmt->fetch();
+
+                if (!$user || !password_verify($password, $user['password_hash'])) {
+                    $error = 'Invalid credentials.';
+                } elseif ($user['status'] !== 'active') {
+                    $error = 'Your account is banned or inactive.';
+                } else {
+                    $_SESSION['user_id'] = $user['id'];
+                    header('Location: portal');
+                    exit;
+                }
+            } catch (Exception $e) {
+                $error = 'Login failed.';
+            }
+        }
+    }
+}
+
+// Prepare math captcha for display
+$loginMathQuestion = '';
+if ($loginCaptchaType === 'math') {
+    $a = rand(1, 9);
+    $b = rand(1, 9);
+    $_SESSION['login_math_answer'] = $a + $b;
+    $loginMathQuestion = $a . ' + ' . $b . ' = ?';
 }
 ?>
 <!DOCTYPE html>
@@ -416,6 +456,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input class="form-input" type="password" id="password" name="password" placeholder="Enter your password">
                 </div>
 
+                <?php if ($loginCaptchaType === 'math'): ?>
+                    <div class="form-group">
+                        <label class="form-label" for="captcha_answer">Captcha: <?php echo htmlspecialchars($loginMathQuestion, ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input class="form-input" type="text" id="captcha_answer" name="captcha_answer" placeholder="Answer">
+                    </div>
+                <?php elseif ($loginCaptchaType === 'google' && $recaptchaSiteKey): ?>
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
+                    </div>
+                <?php endif; ?>
+
                 <div class="form-row-inline">
                     <label class="checkbox">
                         <input type="checkbox">
@@ -434,5 +485,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </section>
     </div>
 </div>
+<?php if ($loginCaptchaType === 'google' && $recaptchaSiteKey): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php endif; ?>
 </body>
 </html>

@@ -10,6 +10,8 @@ rp_start_session();
 
 $error = '';
 $success = '';
+$signupCaptchaType = function_exists('rp_get_setting') ? rp_get_setting('signup_captcha_type', 'none') : 'none';
+$recaptchaSiteKey = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_site_key', '') : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name     = isset($_POST['full_name']) ? trim($_POST['full_name']) : '';
@@ -19,43 +21,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-    if ($name === '' || $email === '' || $password === '') {
-        $error = 'Name, email and password are required.';
-    } else {
-        try {
-            $pdo = rp_get_pdo();
-
-            // Check if email already exists
-            $stmt = $pdo->prepare('SELECT id FROM ' . RP_DB_PREFIX . 'users WHERE email = :email LIMIT 1');
-            $stmt->execute(array(':email' => $email));
-            if ($stmt->fetch()) {
-                $error = 'This email is already registered.';
-            } else {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-
-                $sql = 'INSERT INTO ' . RP_DB_PREFIX . 'users
-                        (name, email, password_hash, role, phone, country, team_id, status)
-                        VALUES (:name, :email, :hash, \'user\', :phone, :country, :team_id, \'active\')';
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute(array(
-                    ':name'    => $name,
-                    ':email'   => $email,
-                    ':hash'    => $hash,
-                    ':phone'   => $phone,
-                    ':country' => $country,
-                    ':team_id' => $teamId,
-                ));
-
-                $userId = $pdo->lastInsertId();
-                $_SESSION['user_id'] = $userId;
-
-                header('Location: portal');
-                exit;
+    // Captcha check
+    if ($signupCaptchaType === 'math') {
+        $answer = isset($_POST['captcha_answer']) ? trim($_POST['captcha_answer']) : '';
+        $expected = isset($_SESSION['signup_math_answer']) ? $_SESSION['signup_math_answer'] : '';
+        if ($answer === '' || strval($expected) !== $answer) {
+            $error = 'Captcha is incorrect.';
+        }
+    } elseif ($signupCaptchaType === 'google') {
+        $token = isset($_POST['g-recaptcha-response']) ? $_POST['g-recaptcha-response'] : '';
+        $secret = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_secret_key', '') : '';
+        if ($secret && $token) {
+            $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secret) .
+                '&response=' . urlencode($token) . '&remoteip=' . urlencode($_SERVER['REMOTE_ADDR']);
+            $verifyResponse = @file_get_contents($verifyUrl);
+            $ok = false;
+            if ($verifyResponse !== false) {
+                $data = json_decode($verifyResponse, true);
+                $ok = isset($data['success']) && $data['success'];
             }
-        } catch (Exception $e) {
-            $error = 'Signup failed.';
+            if (!$ok) {
+                $error = 'Captcha verification failed.';
+            }
+        } else {
+            $error = 'Captcha verification failed.';
         }
     }
+
+    if ($error === '') {
+        if ($name === '' || $email === '' || $password === '') {
+            $error = 'Name, email and password are required.';
+        } else {
+            try {
+                $pdo = rp_get_pdo();
+
+                // Check if email already exists
+                $stmt = $pdo->prepare('SELECT id FROM ' . RP_DB_PREFIX . 'users WHERE email = :email LIMIT 1');
+                $stmt->execute(array(':email' => $email));
+                if ($stmt->fetch()) {
+                    $error = 'This email is already registered.';
+                } else {
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+                    $sql = 'INSERT INTO ' . RP_DB_PREFIX . 'users
+                            (name, email, password_hash, role, phone, country, team_id, status)
+                            VALUES (:name, :email, :hash, \'user\', :phone, :country, :team_id, \'active\')';
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute(array(
+                        ':name'    => $name,
+                        ':email'   => $email,
+                        ':hash'    => $hash,
+                        ':phone'   => $phone,
+                        ':country' => $country,
+                        ':team_id' => $teamId,
+                    ));
+
+                    $userId = $pdo->lastInsertId();
+                    $_SESSION['user_id'] = $userId;
+
+                    header('Location: portal');
+                    exit;
+                }
+            } catch (Exception $e) {
+                $error = 'Signup failed.';
+            }
+        }
+    }
+}
+
+// Prepare math captcha
+$signupMathQuestion = '';
+if ($signupCaptchaType === 'math') {
+    $x = rand(1, 9);
+    $y = rand(1, 9);
+    $_SESSION['signup_math_answer'] = $x + $y;
+    $signupMathQuestion = $x . ' + ' . $y . ' = ?';
 }
 
 // If there was an error, we just reload the HTML form and show a very simple message above it.
@@ -179,6 +219,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input class="form-input" id="password" name="password" type="password"
                                placeholder="Choose a password">
                     </div>
+
+                    <?php if ($signupCaptchaType === 'math'): ?>
+                        <div class="form-group">
+                            <label class="form-label" for="captcha_answer">Captcha: <?php echo htmlspecialchars($signupMathQuestion, ENT_QUOTES, 'UTF-8'); ?></label>
+                            <input class="form-input" type="text" id="captcha_answer" name="captcha_answer" placeholder="Answer">
+                        </div>
+                    <?php elseif ($signupCaptchaType === 'google' && $recaptchaSiteKey): ?>
+                        <div class="form-group">
+                            <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <button class="btn-primary" type="submit">Create account</button>
@@ -190,5 +241,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </section>
     </div>
 </div>
+<?php if ($signupCaptchaType === 'google' && $recaptchaSiteKey): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php endif; ?>
 </body>
 </html>
