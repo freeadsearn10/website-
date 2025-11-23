@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 phone VARCHAR(50) DEFAULT NULL,
                 country VARCHAR(80) DEFAULT NULL,
                 team_id VARCHAR(80) DEFAULT NULL,
+                accent VARCHAR(20) DEFAULT NULL,
                 status ENUM('active','banned') NOT NULL DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
@@ -49,7 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->exec($usersSql);
 
             // Insert default settings
-            $pdo->prepare("INSERT INTO {$dbPrefix}settings(`key`,`value`) VALUES('signup_enabled','1')
+            $pdo->prepare("INSERT INTO {$dbPrefix}settings(`key`,`value`) VALUES
+                ('signup_enabled','1'),
+                ('theme_mode','dark'),
+                ('theme_accent','blue')
                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)")->execute();
 
             // Insert admin user

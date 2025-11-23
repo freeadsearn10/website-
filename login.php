@@ -1,8 +1,15 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/theme.php';
 
 rp_ensure_installed();
 rp_start_session();
+
+// If already logged in, go straight to portal
+if (rp_current_user()) {
+    header('Location: portal');
+    exit;
+}
 
 $error = '';
 
@@ -47,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($loginHtml !== false && preg_match('~<style>(.*?)</style>~s', $loginHtml, $m)) {
             echo $m[1];
         }
+
+        $themeCss = rp_theme_css(rp_get_theme());
+        echo "\n" . $themeCss;
         ?>
     </style>
 </head>
