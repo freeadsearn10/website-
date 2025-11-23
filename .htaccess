@@ -10,9 +10,10 @@ RewriteRule ^ - [L]
 
 # Friendly URLs without extensions
 RewriteRule ^login$ login.php [L]
-RewriteRule ^signup$ signup.html [L]
+RewriteRule ^signup$ signup.php [L]
 RewriteRule ^admin$ admin.php [L]
 RewriteRule ^admin-theme$ admin-theme.php [L]
 RewriteRule ^portal$ portal.php [L]
 RewriteRule ^user-theme-save$ user-theme-save.php [L]
+RewriteRule ^logout$ logout.php [L]
 RewriteRule ^install$ install.php [L]

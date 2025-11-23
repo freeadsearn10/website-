@@ -196,7 +196,7 @@ if (!$user) {
 
         <div class="actions">
             <a class="btn btn-primary" href="./">Back to landing</a>
-            <a class="btn btn-secondary" href="login">Log out</a>
+            <a class="btn btn-secondary" href="logout">Log out</a>
         </div>
     </div>
 </div>
