@@ -4,7 +4,9 @@
 
 require_once __DIR__ . '/config.php';
 
-rp_ensure_installed();
+if (function_exists('rp_ensure_installed')) {
+    rp_ensure_installed();
+}
 rp_start_session();
 
 // If already logged in, go straight to portal
