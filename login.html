@@ -316,7 +316,7 @@
         }
     </style>
 </head>
-<body>
+<body data-page="login">
 <div class="bg-bubbles">
     <div class="bubble big"></div>
     <div class="bubble small"></div>
@@ -376,11 +376,68 @@
                 <button class="btn-primary" type="submit">Log in</button>
 
                 <p class="login-extra">
+                    Need an account? <a class="link-muted" href="signup.html" data-signup="true">Sign up</a><br>
                     Having trouble signing in? <a class="link-muted" href="#">Contact support</a>.
                 </p>
             </form>
         </section>
     </div>
 </div>
+
+<script>
+    (function () {
+        // Simple admin toggle panel, only visible with ?admin=1 in URL
+        var params = new URLSearchParams(window.location.search);
+        var isAdminView = params.get('admin') === '1';
+
+        var enabled = localStorage.getItem('signupEnabled');
+        var signupEnabled = enabled === null ? true : enabled === '1';
+
+        // Apply current setting to any signup links
+        function applySignupVisibility() {
+            var links = document.querySelectorAll('[data-signup="true"]');
+            links.forEach(function (link) {
+                link.style.display = signupEnabled ? 'inline-block' : 'none';
+            });
+        }
+
+        applySignupVisibility();
+
+        if (!isAdminView) {
+            return;
+        }
+
+        // Build a tiny admin box
+        var box = document.createElement('div');
+        box.style.position = 'fixed';
+        box.style.right = '16px';
+        box.style.bottom = '16px';
+        box.style.padding = '10px 12px';
+        box.style.borderRadius = '8px';
+        box.style.background = 'rgba(255,255,255,0.95)';
+        box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+        box.style.fontSize = '12px';
+        box.style.color = '#1f2b3a';
+        box.style.zIndex = '50';
+
+        box.innerHTML = '' +
+            '<strong>Admin</strong><br>' +
+            '<label style="display:flex;align-items:center;gap:6px;margin-top:6px;">' +
+            '<input type="checkbox" id="toggle-signup">' +
+            '<span>Allow new signups</span>' +
+            '</label>';
+
+        document.body.appendChild(box);
+
+        var checkbox = document.getElementById('toggle-signup');
+        checkbox.checked = signupEnabled;
+
+        checkbox.addEventListener('change', function () {
+            signupEnabled = checkbox.checked;
+            localStorage.setItem('signupEnabled', signupEnabled ? '1' : '0');
+            applySignupVisibility();
+        });
+    })();
+</script>
 </body>
 </html>

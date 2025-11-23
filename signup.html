@@ -301,7 +301,7 @@
         }
     </style>
 </head>
-<body>
+<body data-page="signup">
 <div class="bg-bubbles">
     <div class="bubble big"></div>
     <div class="bubble small"></div>
@@ -379,5 +379,55 @@
         </section>
     </div>
 </div>
+
+<script>
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        var isAdminView = params.get('admin') === '1';
+
+        var enabled = localStorage.getItem('signupEnabled');
+        var signupEnabled = enabled === null ? true : enabled === '1';
+
+        // If signup is disabled and this is not admin view, send user to login page
+        if (!signupEnabled && !isAdminView) {
+            window.location.replace('login.html');
+            return;
+        }
+
+        if (!isAdminView) {
+            return;
+        }
+
+        // Tiny admin box to toggle signup, same behaviour as on login page
+        var box = document.createElement('div');
+        box.style.position = 'fixed';
+        box.style.right = '16px';
+        box.style.bottom = '16px';
+        box.style.padding = '10px 12px';
+        box.style.borderRadius = '8px';
+        box.style.background = 'rgba(255,255,255,0.95)';
+        box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+        box.style.fontSize = '12px';
+        box.style.color = '#1f2b3a';
+        box.style.zIndex = '50';
+
+        box.innerHTML = '' +
+            '<strong>Admin</strong><br>' +
+            '<label style="display:flex;align-items:center;gap:6px;margin-top:6px;">' +
+            '<input type="checkbox" id="toggle-signup">' +
+            '<span>Allow new signups</span>' +
+            '</label>';
+
+        document.body.appendChild(box);
+
+        var checkbox = document.getElementById('toggle-signup');
+        checkbox.checked = signupEnabled;
+
+        checkbox.addEventListener('change', function () {
+            signupEnabled = checkbox.checked;
+            localStorage.setItem('signupEnabled', signupEnabled ? '1' : '0');
+        });
+    })();
+</script>
 </body>
 </html>
