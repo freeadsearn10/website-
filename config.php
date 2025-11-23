@@ -23,6 +23,21 @@ function rp_get_pdo(): PDO
     return $pdo;
 }
 
+/**
+ * Ensure the application is installed.
+ * If database or settings table are not reachable, redirect to installer and exit.
+ */
+function rp_ensure_installed(): void
+{
+    try {
+        $pdo = rp_get_pdo();
+        $pdo->query('SELECT 1 FROM ' . RP_DB_PREFIX . 'settings LIMIT 1');
+    } catch (Throwable $e) {
+        header('Location: install.php');
+        exit;
+    }
+}
+
 function rp_get_setting(string $key, $default = null)
 {
     $pdo = rp_get_pdo();
@@ -39,6 +54,19 @@ function rp_is_signup_enabled(): bool
 {
     $v = rp_get_setting('signup_enabled', '1');
     return $v === '1';
+}
+
+/**
+ * Require that a normal user is logged in.
+ * Redirects to login page if no valid session.
+ */
+function rp_require_login(): void
+{
+    $user = rp_current_user();
+    if (!$user) {
+        header('Location: login');
+        exit;
+    }
 }
 
 function rp_start_session(): void
