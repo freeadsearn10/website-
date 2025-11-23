@@ -15,6 +15,7 @@ RewriteRule ^logout$ routes/auth/logout.php [L]
 RewriteRule ^dashboard$ routes/auth/dashboard.php [L]
 RewriteRule ^portal$ routes/auth/portal.php [L]
 
+RewriteRule ^admin-login$ routes/admin/login.php [L]
 RewriteRule ^admin$ routes/admin/admin.php [L]
 RewriteRule ^admin-theme$ routes/admin/theme.php [L]
 RewriteRule ^admin-settings$ routes/admin/settings.php [L]
