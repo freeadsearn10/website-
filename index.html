@@ -517,6 +517,33 @@
             pointer-events: none;
         }
 
+        /* Global bottom loading bar */
+        .page-loading-bar {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e, #fbbf24, #ef4444, #3b82f6);
+            background-size: 200% 100%;
+            transform: scaleX(0);
+            transform-origin: left;
+            opacity: 0;
+            transition: transform 0.4s ease-out, opacity 0.3s ease-out;
+            z-index: 9999;
+        }
+
+        .page-loading-bar.active {
+            transform: scaleX(1);
+            opacity: 1;
+            animation: loading-bar-move 1s linear infinite;
+        }
+
+        @keyframes loading-bar-move {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
         .wave svg {
             display: block;
             width: 100%;
@@ -714,6 +741,42 @@
         var signupLinks = document.querySelectorAll('[data-signup="true"]');
         signupLinks.forEach(function (link) {
             link.style.display = signupEnabled ? 'inline-block' : 'none';
+        });
+
+        // Global bottom loading bar for navigation clicks
+        var bar = document.createElement('div');
+        bar.className = 'page-loading-bar';
+        document.body.appendChild(bar);
+
+        function showLoading() {
+            bar.classList.add('active');
+        }
+
+        function hideLoading() {
+            bar.classList.remove('active');
+        }
+
+        // Show loading when navigating to another page (same tab)
+        document.addEventListener('click', function (e) {
+            var target = e.target.closest('a, button');
+            if (!target) return;
+
+            // Skip if link opens in new tab or has data-no-loading flag
+            if (target.target === '_blank' || target.hasAttribute('data-no-loading')) return;
+
+            // Internal navigation only
+            var href = target.getAttribute('href');
+            if (href && href.indexOf('#') === 0) return;
+
+            showLoading();
+            // Fallback hide in case navigation is cancelled
+            setTimeout(hideLoading, 2000);
+        });
+
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                hideLoading();
+            }
         });
     })();
 </script>
