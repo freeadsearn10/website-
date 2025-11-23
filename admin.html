@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Refine Panel - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-start: #2b2eec;
+            --primary-end: #00b5ff;
+            --accent: #f35bff;
+            --btn-bg: #ffffff;
+            --btn-text: #5c3bff;
+
+            --primary: #2b2eec;
+            --primary-dark: #1b22d8;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #6b7280;
+            --border-soft: #e5e7eb;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(145deg, var(--primary-start), var(--primary-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+        }
+
+        .admin-shell {
+            width: 100%;
+            max-width: 1100px;
+            padding: 40px 20px;
+        }
+
+        .admin-card {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            border-radius: 18px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow:
+                0 24px 60px rgba(15, 23, 42, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.9);
+        }
+
+        .admin-sidebar {
+            padding: 26px 22px;
+            background: radial-gradient(circle at 10% 0%, #5bd8ff 0, #2b2eec 35%, #161aa1 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .admin-logo {
+            margin-bottom: 32px;
+        }
+
+        .admin-logo-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+        }
+
+        .admin-logo-sub {
+            font-size: 11px;
+            opacity: 0.8;
+            letter-spacing: 0.26em;
+            margin-top: 4px;
+        }
+
+        .admin-nav-section {
+            font-size: 13px;
+        }
+
+        .admin-nav-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .admin-nav-item {
+            padding: 7px 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: default;
+            background: rgba(15, 23, 42, 0.18);
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .admin-nav-item span.label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot-green {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 30%, #fff, #22c55e);
+        }
+
+        .admin-sidebar-footer {
+            font-size: 11px;
+            opacity: 0.88;
+        }
+
+        .admin-sidebar-footer a {
+            color: #ffffff;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+        }
+
+        .admin-main {
+            padding: 24px 24px 22px;
+            background: var(--bg-card);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .admin-header-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .admin-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-main);
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #f3f4ff;
+            border: 1px solid #e5e7ff;
+        }
+
+        .switch {
+            position: relative;
+            width: 38px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            background-color: #e5e7eb;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background-color 0.18s ease;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            top: 2px;
+            border-radius: 999px;
+            background-color: #ffffff;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.25);
+        }
+
+        .switch input:checked + .slider {
+            background-color: #22c55e;
+        }
+
+        .switch input:checked + .slider::before {
+            transform: translateX(18px);
+        }
+
+        .admin-content {
+            border-radius: 14px;
+            border: 1px solid var(--border-soft);
+            padding: 16px 16px 18px;
+            background: #f9fafb;
+        }
+
+        .admin-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .admin-section-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        .user-form {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .user-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .user-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .user-input,
+        .user-select {
+            padding: 7px 9px;
+            border-radius: 6px;
+            border: 1px solid var(--border-soft);
+            background: #ffffff;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .user-input:focus,
+        .user-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(37, 84, 255, 0.18);
+        }
+
+        .user-actions-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            padding: 7px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: #ffffff;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .user-count {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .table-wrapper {
+            max-height: 260px;
+            overflow: auto;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead {
+            background: #f3f4f6;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        th,
+        td {
+            padding: 7px 9px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 11px;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-banned {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .row-actions {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .row-link {
+            border: none;
+            background: none;
+            color: var(--primary);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .row-link.danger {
+            color: var(--danger);
+        }
+
+        @media (max-width: 960px) {
+            .admin-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .admin-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .user-form {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .admin-main {
+                padding-inline: 16px;
+            }
+
+            .user-form {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-shell">
+    <div class="admin-card">
+        <aside class="admin-sidebar">
+            <div>
+                <div class="admin-logo">
+                    <div class="admin-logo-title">Refine Panel</div>
+                    <div class="admin-logo-sub">ADMIN CONSOLE</div>
+                </div>
+
+                <div class="admin-nav-section">
+                    <div class="admin-nav-title">Overview</div>
+                    <div class="admin-nav-item">
+                        <span class="label">
+                            <span class="dot-green"></span>
+                            Signups
+                        </span>
+                        <span id="signup-status-label">Enabled</span>
+                    </div>
+                    <div class="admin-nav-item">
+                        <span class="label">
+                            Users
+                        </span>
+                        <span id="user-count-label">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-sidebar-footer">
+                This panel is stored only in your browser (local demo).<br>
+                Go back to <a href="index.html">Refine Panel</a>.
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-header">
+                <div>
+                    <div class="admin-header-title">Admin control</div>
+                    <div class="admin-header-subtitle">
+                        Manage signups and demo users directly from your browser.
+                    </div>
+                </div>
+
+                <label class="admin-toggle">
+                    <span>Allow new signups</span>
+                    <span class="switch">
+                        <input type="checkbox" id="signup-switch">
+                        <span class="slider"></span>
+                    </span>
+                </label>
+            </header>
+
+            <section class="admin-content">
+                <div class="admin-section-title">User management</div>
+                <div class="admin-section-subtitle">
+                    Create demo users, ban / unban, or delete entries. Data is saved in browser localStorage only.
+                </div>
+
+                <form id="user-form" class="user-form" autocomplete="off">
+                    <div class="user-form-group">
+                        <label class="user-label" for="name">Name</label>
+                        <input id="name" class="user-input" type="text" placeholder="User name" required>
+                    </div>
+                    <div class="user-form-group">
+                        <label class="user-label" for="email">Email</label>
+                        <input id="email" class="user-input" type="email" placeholder="user@example.com" required>
+                    </div>
+                    <div class="user-form-group">
+                        <label class="user-label" for="role">Role</label>
+                        <select id="role" class="user-select">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="user-form-group">
+                        <label class="user-label" for="team">Team ID</label>
+                        <input id="team" class="user-input" type="text" placeholder="Teams ID">
+                    </div>
+                </form>
+
+                <div class="user-actions-row">
+                    <div>
+                        <button id="create-user" class="btn btn-primary" type="button">Create user</button>
+                        <button id="clear-users" class="btn btn-danger" type="button">Delete all</button>
+                    </div>
+                    <div class="user-count" id="user-count-text">0 users</div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Team ID</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="user-table-body">
+                        <!-- rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var SIGNUP_KEY = 'signupEnabled';
+        var USERS_KEY = 'adminUsers';
+
+        function loadSignupEnabled() {
+            var value = localStorage.getItem(SIGNUP_KEY);
+            return value === null ? true : value === '1';
+        }
+
+        function saveSignupEnabled(enabled) {
+            localStorage.setItem(SIGNUP_KEY, enabled ? '1' : '0');
+        }
+
+        function loadUsers() {
+            try {
+                var raw = localStorage.getItem(USERS_KEY);
+                if (!raw) return [];
+                var parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        }
+
+        var signupSwitch = document.getElementById('signup-switch');
+        var signupStatusLabel = document.getElementById('signup-status-label');
+        var userCountLabel = document.getElementById('user-count-label');
+        var userCountText = document.getElementById('user-count-text');
+        var tbody = document.getElementById('user-table-body');
+
+        var users = loadUsers();
+        var signupEnabled = loadSignupEnabled();
+
+        function renderSignupToggle() {
+            signupSwitch.checked = signupEnabled;
+            signupStatusLabel.textContent = signupEnabled ? 'Enabled' : 'Disabled';
+        }
+
+        function renderUsers() {
+            tbody.innerHTML = '';
+            users.forEach(function (user, index) {
+                var tr = document.createElement('tr');
+
+                var nameTd = document.createElement('td');
+                nameTd.textContent = user.name || '';
+                tr.appendChild(nameTd);
+
+                var emailTd = document.createElement('td');
+                emailTd.textContent = user.email || '';
+                tr.appendChild(emailTd);
+
+                var roleTd = document.createElement('td');
+                roleTd.textContent = user.role || 'user';
+                tr.appendChild(roleTd);
+
+                var statusTd = document.createElement('td');
+                var badge = document.createElement('span');
+                badge.className = 'badge ' + (user.banned ? 'badge-banned' : 'badge-active');
+                badge.textContent = user.banned ? 'Banned' : 'Active';
+                statusTd.appendChild(badge);
+                tr.appendChild(statusTd);
+
+                var teamTd = document.createElement('td');
+                teamTd.textContent = user.team || '';
+                tr.appendChild(teamTd);
+
+                var actionsTd = document.createElement('td');
+                var actionsDiv = document.createElement('div');
+                actionsDiv.className = 'row-actions';
+
+                var banBtn = document.createElement('button');
+                banBtn.type = 'button';
+                banBtn.className = 'row-link';
+                banBtn.textContent = user.banned ? 'Unban' : 'Ban';
+                banBtn.addEventListener('click', function () {
+                    users[index].banned = !users[index].banned;
+                    saveUsers(users);
+                    renderUsers();
+                });
+                actionsDiv.appendChild(banBtn);
+
+                var delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'row-link danger';
+                delBtn.textContent = 'Delete';
+                delBtn.addEventListener('click', function () {
+                    users.splice(index, 1);
+                    saveUsers(users);
+                    renderUsers();
+                });
+                actionsDiv.appendChild(delBtn);
+
+                actionsTd.appendChild(actionsDiv);
+                tr.appendChild(actionsTd);
+
+                tbody.appendChild(tr);
+            });
+
+            var count = users.length;
+            userCountLabel.textContent = String(count);
+            userCountText.textContent = count + (count === 1 ? ' user' : ' users');
+        }
+
+        signupSwitch.addEventListener('change', function () {
+            signupEnabled = signupSwitch.checked;
+            saveSignupEnabled(signupEnabled);
+            renderSignupToggle();
+        });
+
+        document.getElementById('create-user').addEventListener('click', function () {
+            var nameInput = document.getElementById('name');
+            var emailInput = document.getElementById('email');
+            var roleSelect = document.getElementById('role');
+            var teamInput = document.getElementById('team');
+
+            if (!nameInput.value.trim() || !emailInput.value.trim()) {
+                return;
+            }
+
+            users.push({
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                role: roleSelect.value || 'user',
+                team: teamInput.value.trim(),
+                banned: false
+            });
+
+            saveUsers(users);
+            renderUsers();
+
+            nameInput.value = '';
+            emailInput.value = '';
+            teamInput.value = '';
+            roleSelect.value = 'user';
+        });
+
+        document.getElementById('clear-users').addEventListener('click', function () {
+            if (!users.length) return;
+            if (!confirm('Delete all users from this browser?')) return;
+            users = [];
+            saveUsers(users);
+            renderUsers();
+        });
+
+        renderSignupToggle();
+        renderUsers();
+    })();
+</script>
+</body>
+</html>
