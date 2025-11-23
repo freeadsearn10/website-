@@ -1,12 +1,22 @@
 <?php
+// Show all errors for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/theme.php';
 
-rp_ensure_installed();
-rp_require_login();
+rp_start_session();
 
-$user = rp_current_user();
-$theme = rp_get_user_theme($user);
+// Simple login check without relying on helper functions that may not exist
+$user = null;
+if (function_exists('rp_current_user')) {
+    $user = rp_current_user();
+}
+
+if (!$user) {
+    header('Location: login');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,51 +24,156 @@ $theme = rp_get_user_theme($user);
     <meta charset="UTF-8">
     <title>Refine Panel - Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Static CSS copied from portal.html -->
     <style>
-        <?php
-        // base styles from portal.html to keep visual design
-        $portalHtml = file_get_contents(__DIR__ . '/portal.html');
-        if ($portalHtml !== false && preg_match('~<style>(.*?)</style>~s', $portalHtml, $m)) {
-            echo $m[1];
+        :root {
+            --primary-start: #2b2eec;
+            --primary-end: #00b5ff;
+            --accent: #f35bff;
+            --text-main: #ffffff;
+            --text-sub: #e4f2ff;
         }
-        // override core colors with theme
-        echo "\n" . rp_theme_css($theme);
-        ?>
-        .theme-choices {
-            margin-top: 18px;
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, var(--primary-start), var(--primary-end));
+            color: var(--text-main);
+        }
+
+        .portal-shell {
+            max-width: 520px;
+            width: 100%;
+            padding: 32px 20px;
+        }
+
+        .portal-card {
+            background: rgba(7, 13, 62, 0.9);
+            border-radius: 18px;
+            padding: 26px 24px 24px;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(7, 18, 94, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            margin-bottom: 14px;
+        }
+
+        .badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 30%, #fff, var(--accent));
+        }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-bottom: 18px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            font-size: 11px;
+            margin-bottom: 14px;
+        }
+
+        .pill span.label {
+            color: var(--text-sub);
+        }
+
+        .pill span.status {
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.15);
+            color: #7dd3fc;
+            font-size: 10px;
+        }
+
+        .list {
             font-size: 12px;
             color: var(--text-sub);
+            margin-bottom: 18px;
         }
-        .theme-choices-buttons {
+
+        .list li {
+            margin-left: 16px;
+            margin-bottom: 4px;
+        }
+
+        .actions {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .theme-chip {
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
             border-radius: 999px;
-            padding: 6px 10px;
-            border: 1px solid rgba(148,163,184,0.7);
-            background: rgba(15,23,42,0.9);
-            color: var(--text-sub);
-            font-size: 11px;
+            border: none;
+            font-size: 13px;
             cursor: pointer;
             text-decoration: none;
         }
-        .theme-chip span.dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            margin-right: 6px;
+
+        .btn-primary {
+            background: #ffffff;
+            color: #1f2937;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
         }
-        .theme-chip.blue span.dot { background: linear-gradient(135deg,#2b2eec,#00b5ff); }
-        .theme-chip.green span.dot { background: linear-gradient(135deg,#0f766e,#22c55e); }
-        .theme-chip.purple span.dot { background: linear-gradient(135deg,#4c1d95,#7c3aed); }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-sub);
+            border: 1px solid rgba(148, 163, 184, 0.7);
+        }
+
+        @media (max-width: 480px) {
+            .portal-card {
+                padding-inline: 18px;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="portal-shell">
-    <div class="portal-card theme-card-bg">
+    <div class="portal-card">
         <div class="badge">
             <span class="badge-dot"></span>
             <span>Refine Panel Portal</span>
@@ -79,22 +194,7 @@ $theme = rp_get_user_theme($user);
             <li>Team-level access control and audit logs</li>
         </ul>
 
-        <div class="theme-choices">
-            Theme colour
-            <div class="theme-choices-buttons">
-                <a class="theme-chip blue" href="user-theme-save?accent=blue">
-                    <span class="dot"></span>Blue
-                </a>
-                <a class="theme-chip green" href="user-theme-save?accent=green">
-                    <span class="dot"></span>Green
-                </a>
-                <a class="theme-chip purple" href="user-theme-save?accent=purple">
-                    <span class="dot"></span>Purple
-                </a>
-            </div>
-        </div>
-
-        <div class="actions" style="margin-top: 18px;">
+        <div class="actions">
             <a class="btn btn-primary" href="./">Back to landing</a>
             <a class="btn btn-secondary" href="login">Log out</a>
         </div>
