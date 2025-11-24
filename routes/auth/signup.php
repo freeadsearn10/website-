@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $userId = $pdo->lastInsertId();
                     $_SESSION['user_id'] = $userId;
+                    $_SESSION['flash_success'] = 'Signup completed. Your partner account is now active.';
 
                     header('Location: /portal');
                     exit;

@@ -1,5 +1,5 @@
 <?php
-// Variables from route: $users, $currentAdmin, $message, $error
+// Variables from route: $users, $currentAdmin, $message, $error, $editUser
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -496,11 +496,11 @@
         </header>
 
         <main class="content-area">
-            <section class="card-panel">
+            <section class="card-panel" style="margin-bottom:14px;">
                 <div class="card-header">
                     <div>
                         <div class="card-title">All users</div>
-                        <div class="card-subtitle">Ban, unban or delete accounts</div>
+                        <div class="card-subtitle">Ban, unban, edit or delete accounts</div>
                     </div>
                 </div>
 
@@ -509,6 +509,55 @@
                 <?php endif; ?>
                 <?php if ($error): ?>
                     <div class="alert alert-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
+
+                <?php if ($editUser): ?>
+                    <div class="card-panel" style="margin-bottom:10px;padding:10px 10px 8px;">
+                        <div class="card-header" style="margin-bottom:6px;">
+                            <div>
+                                <div class="card-title">Edit user #<?php echo (int)$editUser['id']; ?></div>
+                                <div class="card-subtitle">Update name, email, role or team ID</div>
+                            </div>
+                        </div>
+                        <form method="post" action="/admin-users" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:flex-end;">
+                            <input type="hidden" name="action" value="update">
+                            <input type="hidden" name="user_id" value="<?php echo (int)$editUser['id']; ?>">
+                            <div>
+                                <label class="card-subtitle" style="font-size:11px;margin-bottom:3px;">Name</label>
+                                <input class="form-input" type="text" name="name"
+                                       value="<?php echo htmlspecialchars($editUser['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div>
+                                <label class="card-subtitle" style="font-size:11px;margin-bottom:3px;">Email</label>
+                                <input class="form-input" type="email" name="email"
+                                       value="<?php echo htmlspecialchars($editUser['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div>
+                                <label class="card-subtitle" style="font-size:11px;margin-bottom:3px;">Role</label>
+                                <select class="form-input" name="role" style="padding-right:4px;">
+                                    <?php
+                                    $roles = ['user' => 'User', 'admin' => 'Admin'];
+                                    foreach ($roles as $val => $label) {
+                                        $sel = ($editUser['role'] ?? 'user') === $val ? ' selected' : '';
+                                        echo '<option value="' . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' .
+                                             htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</option>';
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="card-subtitle" style="font-size:11px;margin-bottom:3px;">Team ID</label>
+                                <input class="form-input" type="text" name="team_id"
+                                       value="<?php echo htmlspecialchars($editUser['team_id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div style="grid-column:1 / -1; margin-top:4px; display:flex; gap:8px; justify-content:flex-end;">
+                                <a href="/admin-users" class="user-action-btn" style="text-decoration:none;color:var(--text-muted);">Cancel</a>
+                                <button type="submit" class="btn-primary" style="width:auto;padding:7px 12px;font-size:12px;border-radius:999px;box-shadow:none;">
+                                    Save changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 <?php endif; ?>
 
                 <div style="overflow:auto; max-height:480px;">
@@ -563,6 +612,8 @@
                                     </td>
                                     <td>
                                         <div class="user-actions">
+                                            <a href="/admin-users?edit=<?php echo (int)$u['id']; ?>" class="user-action-btn"
+                                               style="color:var(--accent);text-decoration:none;">Edit</a>
                                             <?php if (($u['status'] ?? 'active') === 'active'): ?>
                                                 <form method="post" action="/admin-users" style="display:inline;">
                                                     <input type="hidden" name="user_id" value="<?php echo (int)$u['id']; ?>">

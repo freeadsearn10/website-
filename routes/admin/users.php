@@ -31,10 +31,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("DELETE FROM " . RP_DB_PREFIX . "users WHERE id = :id");
                 $stmt->execute([':id' => $userId]);
                 $message = 'User deleted.';
+            } elseif ($action === 'update') {
+                $name   = isset($_POST['name']) ? trim($_POST['name']) : '';
+                $email  = isset($_POST['email']) ? trim($_POST['email']) : '';
+                $role   = isset($_POST['role']) ? trim($_POST['role']) : 'user';
+                $teamId = isset($_POST['team_id']) ? trim($_POST['team_id']) : '';
+
+                if ($name === '' || $email === '') {
+                    $error = 'Name and email are required for update.';
+                } else {
+                    if (!in_array($role, ['user', 'admin'], true)) {
+                        $role = 'user';
+                    }
+                    $stmt = $pdo->prepare("UPDATE " . RP_DB_PREFIX . "users 
+                        SET name = :name, email = :email, role = :role, team_id = :team_id 
+                        WHERE id = :id");
+                    $stmt->execute([
+                        ':name'    => $name,
+                        ':email'   => $email,
+                        ':role'    => $role,
+                        ':team_id' => $teamId,
+                        ':id'      => $userId,
+                    ]);
+                    $message = 'User updated.';
+                }
             }
         } catch (Throwable $e) {
             $error = 'Action failed.';
         }
+    }
+}
+
+// Optional edit selection
+$editUser = null;
+$editId = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
+if ($editId > 0) {
+    try {
+        $stmt = $pdo->prepare('SELECT id, name, email, role, status, team_id FROM ' . RP_DB_PREFIX . 'users WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $editId]);
+        $editUser = $stmt->fetch() ?: null;
+    } catch (Throwable $e) {
+        $editUser = null;
     }
 }
 

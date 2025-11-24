@@ -17,6 +17,12 @@ if (!$user) {
     header('Location: login');
     exit;
 }
+
+$flash = '';
+if (!empty($_SESSION['flash_success'])) {
+    $flash = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -169,9 +175,50 @@ if (!$user) {
                 padding-inline: 18px;
             }
         }
+
+        .flash-toast {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            max-width: 280px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(34, 197, 94, 0.6);
+            color: #bbf7d0;
+            font-size: 12px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .flash-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .flash-close {
+            border: none;
+            background: none;
+            color: #e5e7eb;
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+<?php if ($flash): ?>
+<div class="flash-toast" id="flashToast">
+    <span><?php echo htmlspecialchars($flash, ENT_QUOTES, 'UTF-8'); ?></span>
+    <button type="button" class="flash-close" aria-label="Close">×</button>
+</div>
+<?php endif; ?>
 <div class="portal-shell">
     <div class="portal-card">
         <div class="badge">
@@ -200,5 +247,34 @@ if (!$user) {
         </div>
     </div>
 </div>
+<?php if ($flash): ?>
+<script>
+    (function () {
+        var toast = document.getElementById('flashToast');
+        if (!toast) return;
+        setTimeout(function () {
+            toast.classList.add('show');
+        }, 50);
+
+        var closeBtn = toast.querySelector('.flash-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                toast.classList.remove('show');
+                setTimeout(function () {
+                    if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 250);
+            });
+        }
+
+        setTimeout(function () {
+            if (!toast) return;
+            toast.classList.remove('show');
+            setTimeout(function () {
+                if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 250);
+        }, 3500);
+    })();
+</script>
+<?php endif; ?>
 </body>
 </html>

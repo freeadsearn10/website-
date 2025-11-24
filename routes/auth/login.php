@@ -64,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Your account is banned or inactive.';
                 } else {
                     $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['flash_success'] = 'Login successful. Welcome back.';
                     header('Location: /portal');
                     exit;
                 }
