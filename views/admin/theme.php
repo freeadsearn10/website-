@@ -1,11 +1,11 @@
 <?php
-// Variables available from route: $stats (array), $latestUsers (array), $currentAdmin (array).
+// Variables: $theme, $mode, $accent, $message, $error, $currentAdmin
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Refine Panel - Admin Dashboard</title>
+    <title>Refine Panel - Theme settings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
@@ -259,60 +259,6 @@
             padding: 16px 18px 20px;
         }
 
-        .cards-row {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 16px;
-        }
-
-        .stat-card {
-            background: var(--card-inner-bg);
-            border-radius: 14px;
-            padding: 12px 12px 11px;
-            border: 1px solid var(--card-border);
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            font-size: 12px;
-        }
-
-        .stat-label {
-            color: var(--text-muted);
-            font-size: 11px;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .stat-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 7px;
-            border-radius: 999px;
-            font-size: 10px;
-        }
-
-        .stat-pill.green {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-
-        .stat-pill.red {
-            background: var(--danger-soft);
-            color: var(--danger);
-        }
-
-        .grid-main {
-            display: grid;
-            grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.2fr);
-            gap: 16px;
-        }
-
         .card-panel {
             background: var(--card-inner-bg);
             border-radius: 14px;
@@ -346,94 +292,56 @@
             color: var(--text-muted);
         }
 
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .users-table th,
-        .users-table td {
-            padding: 7px 6px;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        .users-table th {
-            text-align: left;
-            color: var(--text-muted);
-            font-weight: 500;
+        .alert {
+            margin-bottom: 10px;
             font-size: 11px;
+            border-radius: 8px;
+            padding: 6px 8px;
         }
 
-        .users-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 7px;
-            border-radius: 999px;
-            font-size: 10px;
-        }
-
-        .status-badge.active {
-            background: rgba(34, 197, 94, 0.18);
+        .alert-success {
+            background: var(--accent-soft);
             color: var(--accent);
+            border: 1px solid rgba(34, 197, 94, 0.5);
         }
 
-        .status-badge.banned {
-            background: rgba(248, 113, 113, 0.2);
+        .alert-error {
+            background: var(--danger-soft);
             color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, 0.5);
         }
 
-        .role-pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 7px;
-            border-radius: 999px;
-            font-size: 10px;
-            background: rgba(99, 102, 241, 0.16);
-            color: #a5b4fc;
+        .form-group {
+            margin-bottom: 10px;
         }
 
-        .team-id {
-            font-size: 11px;
+        .form-label {
+            display: block;
+            font-size: 12px;
             color: var(--text-muted);
+            margin-bottom: 4px;
         }
 
-        .side-card-stat {
+        .form-select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: #020617;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .theme-preview {
+            margin-top: 10px;
             display: grid;
             grid-template-columns: minmax(0, 1fr);
             gap: 8px;
-            font-size: 12px;
-        }
-
-        .side-row {
-            display: flex;
-            justify-content: space-between;
             font-size: 11px;
             color: var(--text-muted);
         }
 
-        .side-row strong {
-            color: var(--text-main);
-        }
-
-        .side-cta {
-            margin-top: 10px;
-            font-size: 11px;
-        }
-
-        .side-cta a {
-            color: var(--accent);
-        }
-
-        .side-cta a:hover {
-            text-decoration: underline;
-        }
-
-        /* Mobile / tablet */
         @media (max-width: 960px) {
             .admin-layout {
                 grid-template-columns: minmax(0, 1fr);
@@ -458,21 +366,7 @@
             }
         }
 
-        @media (max-width: 800px) {
-            .cards-row {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .grid-main {
-                grid-template-columns: minmax(0, 1fr);
-            }
-        }
-
-        @media (max-width: 520px) {
-            .cards-row {
-                grid-template-columns: minmax(0, 1fr);
-            }
-
+        @media (max-width: 720px) {
             .content-area {
                 padding-inline: 12px;
             }
@@ -493,7 +387,7 @@
 
             <nav class="sidebar-nav">
                 <div class="sidebar-section-title">Main</div>
-                <a class="nav-item active" href="/admin">
+                <a class="nav-item" href="/admin">
                     <span class="icon"></span>
                     <span>Dashboard</span>
                 </a>
@@ -507,7 +401,7 @@
                     <span class="icon"></span>
                     <span>Public links</span>
                 </a>
-                <a class="nav-item" href="/admin-theme">
+                <a class="nav-item active" href="/admin-theme">
                     <span class="icon"></span>
                     <span>Theme &amp; colour</span>
                 </a>
@@ -531,8 +425,8 @@
                     <span></span>
                 </button>
                 <div>
-                    <div class="topbar-title">Dashboard</div>
-                    <div class="topbar-subtitle">Overview of users and platform status</div>
+                    <div class="topbar-title">Theme settings</div>
+                    <div class="topbar-subtitle">Control global mode and accent colour</div>
                 </div>
             </div>
 
@@ -548,144 +442,56 @@
                     </div>
                     <div>
                         <div style="font-size:12px;"><?php echo htmlspecialchars($currentAdmin['name'] ?? 'Administrator', ENT_QUOTES, 'UTF-8'); ?></div>
-                        <div style="font-size:10px;color:var(--text-muted);">Full access</div>
+                        <div style="font-size:10px;color:var(--text-muted);">Theme &amp; appearance</div>
                     </div>
                 </div>
             </div>
         </header>
 
         <main class="content-area">
-            <section class="cards-row">
-                <div class="stat-card">
-                    <div class="stat-label">Total users</div>
-                    <div class="stat-value"><?php echo (int)$stats['total_users']; ?></div>
-                    <div class="stat-pill green">
-                        <span>All accounts in system</span>
+            <section class="card-panel">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Global theme</div>
+                        <div class="card-subtitle">Affects overall look of landing and portal pages</div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Active users</div>
-                    <div class="stat-value"><?php echo (int)$stats['active_users']; ?></div>
-                    <div class="stat-pill green">
-                        <span>Can log in</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Banned / inactive</div>
-                    <div class="stat-value"><?php echo (int)$stats['banned_users']; ?></div>
-                    <div class="stat-pill red">
-                        <span>Review regularly</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Admin accounts</div>
-                    <div class="stat-value"><?php echo (int)$stats['admin_users']; ?></div>
-                    <div class="stat-pill green">
-                        <span>Use /admin-login</span>
-                    </div>
-                </div>
-            </section>
 
-            <section class="grid-main">
-                <div class="card-panel">
-                    <div class="card-header">
-                        <div>
-                            <div class="card-title">Latest users</div>
-                            <div class="card-subtitle">Recently created accounts</div>
-                        </div>
-                        <div class="chip">Database powered</div>
+                <?php if ($message): ?>
+                    <div class="alert alert-success"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
+                <?php if ($error): ?>
+                    <div class="alert alert-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
+
+                <form method="post" action="/admin-theme">
+                    <div class="form-group">
+                        <label class="form-label" for="mode">Mode</label>
+                        <select id="mode" name="mode" class="form-select">
+                            <option value="dark" <?php echo $mode === 'dark' ? 'selected' : ''; ?>>Dark</option>
+                            <option value="light" <?php echo $mode === 'light' ? 'selected' : ''; ?>>Light</option>
+                        </select>
                     </div>
 
-                    <table class="users-table">
-                        <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Name &amp; email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Team</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php if (!$latestUsers): ?>
-                            <tr>
-                                <td colspan="5" style="padding:10px 6px;font-size:12px;color:var(--text-muted);">
-                                    No users found yet. Create users via signup or installer admin.
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($latestUsers as $u): ?>
-                                <tr>
-                                    <td><?php echo (int)$u['id']; ?></td>
-                                    <td>
-                                        <div style="font-size:12px;">
-                                            <?php echo htmlspecialchars($u['name'] ?: '—', ENT_QUOTES, 'UTF-8'); ?>
-                                        </div>
-                                        <div style="font-size:11px;color:var(--text-muted);">
-                                            <?php echo htmlspecialchars($u['email'], ENT_QUOTES, 'UTF-8'); ?>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="role-pill">
-                                            <?php echo htmlspecialchars($u['role'], ENT_QUOTES, 'UTF-8'); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $status = $u['status'] ?? 'active';
-                                        $cls = $status === 'active' ? 'active' : 'banned';
-                                        ?>
-                                        <span class="status-badge <?php echo $cls; ?>">
-                                            <?php echo htmlspecialchars(ucfirst($status), ENT_QUOTES, 'UTF-8'); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="team-id">
-                                            <?php echo htmlspecialchars($u['team_id'] ?? '—', ENT_QUOTES, 'UTF-8'); ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="card-panel">
-                    <div class="card-header">
-                        <div>
-                            <div class="card-title">Quick system overview</div>
-                            <div class="card-subtitle">High-level health of Refine Panel</div>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="accent">Accent colour</label>
+                        <select id="accent" name="accent" class="form-select">
+                            <option value="blue" <?php echo $accent === 'blue' ? 'selected' : ''; ?>>Blue</option>
+                            <option value="green" <?php echo $accent === 'green' ? 'selected' : ''; ?>>Green</option>
+                            <option value="purple" <?php echo $accent === 'purple' ? 'selected' : ''; ?>>Purple</option>
+                        </select>
                     </div>
 
-                    <div class="side-card-stat">
-                        <div class="side-row">
-                            <span>Signup status</span>
-                            <strong>
-                                <?php echo rp_is_signup_enabled() ? 'Enabled' : 'Disabled'; ?>
-                            </strong>
-                        </div>
-                        <div class="side-row">
-                            <span>Active admins</span>
-                            <strong><?php echo (int)$stats['admin_users']; ?></strong>
-                        </div>
-                        <div class="side-row">
-                            <span>Active users</span>
-                            <strong><?php echo (int)$stats['active_users']; ?></strong>
-                        </div>
-                        <div class="side-row">
-                            <span>Banned / inactive</span>
-                            <strong style="color:var(--danger);"><?php echo (int)$stats['banned_users']; ?></strong>
-                        </div>
-                    </div>
+                    <button class="btn-primary" type="submit"
+                            style="margin-top:10px;width:auto;padding:8px 14px;border-radius:999px;font-size:12px;box-shadow:none;">
+                        Save theme
+                    </button>
+                </form>
 
-                    <div class="side-cta">
-                        Adjust settings:
-                        <a href="/admin-settings">Public links</a>,
-                        <a href="/admin-theme">Theme</a>,
-                        <a href="/admin-captcha">Captcha</a>.
-                    </div>
+                <div class="theme-preview">
+                    <div>Current mode: <strong><?php echo htmlspecialchars(ucfirst($mode), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                    <div>Current accent: <strong><?php echo htmlspecialchars(ucfirst($accent), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                    <div>Users can still override accent for their own portal (future feature).</div>
                 </div>
             </section>
         </main>
@@ -703,7 +509,6 @@
             sidebar.classList.toggle('open');
         });
 
-        // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function (e) {
             if (window.innerWidth > 960) return;
             if (!sidebar.classList.contains('open')) return;
