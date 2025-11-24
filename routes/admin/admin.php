@@ -10,7 +10,7 @@ rp_require_admin();
 
 $pdo = rp_get_pdo();
 
-// Basic stats
+// Stats + latest users derived from same dataset so they always match what admin-users shows.
 $stats = [
     'total_users'   => 0,
     'active_users'  => 0,
@@ -18,23 +18,31 @@ $stats = [
     'admin_users'   => 0,
 ];
 
-try {
-    $stats['total_users'] = (int)$pdo->query('SELECT COUNT(*) FROM ' . RP_DB_PREFIX . 'users')->fetchColumn();
-    $stats['active_users'] = (int)$pdo->query("SELECT COUNT(*) FROM " . RP_DB_PREFIX . "users WHERE status = 'active'")->fetchColumn();
-    $stats['banned_users'] = (int)$pdo->query("SELECT COUNT(*) FROM " . RP_DB_PREFIX . "users WHERE status = 'banned'")->fetchColumn();
-    $stats['admin_users'] = (int)$pdo->query("SELECT COUNT(*) FROM " . RP_DB_PREFIX . "users WHERE role = 'admin'")->fetchColumn();
-} catch (Throwable $e) {
-    // Leave defaults if stats query fails
-}
-
-// Latest users
 $latestUsers = [];
+
 try {
     $stmt = $pdo->query('SELECT id, name, email, role, status, team_id, created_at 
         FROM ' . RP_DB_PREFIX . 'users 
-        ORDER BY id DESC 
-        LIMIT 8');
-    $latestUsers = $stmt->fetchAll() ?: [];
+        ORDER BY id DESC');
+    $rows = $stmt->fetchAll() ?: [];
+
+    $stats['total_users'] = count($rows);
+
+    foreach ($rows as $row) {
+        $status = strtolower($row['status'] ?? '');
+        $role   = strtolower($row['role'] ?? '');
+        if ($status === 'active') {
+            $stats['active_users']++;
+        } elseif ($status === 'banned') {
+            $stats['banned_users']++;
+        }
+        if ($role === 'admin') {
+            $stats['admin_users']++;
+        }
+    }
+
+    // Latest up to 8 users
+    $latestUsers = array_slice($rows, 0, 8);
 } catch (Throwable $e) {
     $latestUsers = [];
 }
