@@ -1,0 +1,492 @@
+<?php
+// Simplified, safe login script without theme.php or dynamic CSS.
+// This should run on most shared hosting setups without 500 errors.
+
+require_once __DIR__ . '/config.php';
+
+if (function_exists('rp_ensure_installed')) {
+    rp_ensure_installed();
+}
+rp_start_session();
+
+// If already logged in, go straight to portal
+if (rp_current_user()) {
+    header('Location: portal');
+    exit;
+}
+
+$error = '';
+$loginCaptchaType = function_exists('rp_get_setting') ? rp_get_setting('login_captcha_type', 'none') : 'none';
+$recaptchaSiteKey = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_site_key', '') : '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+
+    // Captcha check
+    if ($loginCaptchaType === 'math') {
+        $answer = isset($_POST['captcha_answer']) ? trim($_POST['captcha_answer']) : '';
+        $expected = isset($_SESSION['login_math_answer']) ? $_SESSION['login_math_answer'] : '';
+        if ($answer === '' || strval($expected) !== $answer) {
+            $error = 'Captcha is incorrect.';
+        }
+    } elseif ($loginCaptchaType === 'google') {
+        $token = isset($_POST['g-recaptcha-response']) ? $_POST['g-recaptcha-response'] : '';
+        $secret = function_exists('rp_get_setting') ? rp_get_setting('recaptcha_secret_key', '') : '';
+        if ($secret && $token) {
+            $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secret) .
+                '&response=' . urlencode($token) . '&remoteip=' . urlencode($_SERVER['REMOTE_ADDR']);
+            $verifyResponse = @file_get_contents($verifyUrl);
+            $ok = false;
+            if ($verifyResponse !== false) {
+                $data = json_decode($verifyResponse, true);
+                $ok = isset($data['success']) && $data['success'];
+            }
+            if (!$ok) {
+                $error = 'Captcha verification failed.';
+            }
+        } else {
+            $error = 'Captcha verification failed.';
+        }
+    }
+
+    if ($error === '') {
+        if ($email === '' || $password === '') {
+            $error = 'Please enter email and password.';
+        } else {
+            try {
+                $pdo = rp_get_pdo();
+                $stmt = $pdo->prepare('SELECT id, password_hash, status FROM ' . RP_DB_PREFIX . 'users WHERE email = :email LIMIT 1');
+                $stmt->execute(array(':email' => $email));
+                $user = $stmt->fetch();
+
+                if (!$user || !password_verify($password, $user['password_hash'])) {
+                    $error = 'Invalid credentials.';
+                } elseif ($user['status'] !== 'active') {
+                    $error = 'Your account is banned or inactive.';
+                } else {
+                    $_SESSION['user_id'] = $user['id'];
+                    header('Location: portal');
+                    exit;
+                }
+            } catch (Exception $e) {
+                $error = 'Login failed.';
+            }
+        }
+    }
+}
+
+// Prepare math captcha for display
+$loginMathQuestion = '';
+if ($loginCaptchaType === 'math') {
+    $a = rand(1, 9);
+    $b = rand(1, 9);
+    $_SESSION['login_math_answer'] = $a + $b;
+    $loginMathQuestion = $a . ' + ' . $b . ' = ?';
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Refine Panel - Account Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Static CSS copied from login.html to avoid dynamic parsing -->
+    <style>
+        :root {
+            --primary-start: #2b2eec;
+            --primary-end: #00b5ff;
+            --accent: #f35bff;
+            --btn-bg: #ffffff;
+            --btn-text: #5c3bff;
+            --nav-bg: rgba(10, 14, 52, 0.3);
+
+            --primary: #2b2eec;
+            --primary-dark: #1b22d8;
+            --bg-soft: #eef4ff;
+            --text-main: #1f2b3a;
+            --text-muted: #7b8597;
+            --border-soft: #d6e0f5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(145deg, var(--primary-start), var(--primary-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+        }
+
+        .bg-bubbles {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 999px;
+            border: 2px solid rgba(102, 150, 255, 0.35);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .bubble.big {
+            width: 220px;
+            height: 220px;
+            right: 10%;
+            top: 14%;
+        }
+
+        .bubble.small {
+            width: 70px;
+            height: 70px;
+            right: 22%;
+            top: 55%;
+        }
+
+        .bubble.tiny {
+            width: 35px;
+            height: 35px;
+            left: 14%;
+            bottom: 18%;
+        }
+
+        .bubble.blur {
+            width: 160px;
+            height: 160px;
+            left: 6%;
+            bottom: 8%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.95), transparent 65%);
+            border: none;
+            filter: blur(4px);
+        }
+
+        .auth-shell {
+            position: relative;
+            z-index: 1;
+            padding: 40px 20px;
+            width: 100%;
+            max-width: 960px;
+        }
+
+        .auth-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+            border-radius: 16px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow:
+                0 24px 60px rgba(10, 28, 84, 0.24),
+                0 0 0 1px rgba(255, 255, 255, 0.9);
+        }
+
+        .auth-brand {
+            padding: 40px 36px;
+            background: radial-gradient(circle at 10% 0%, #5bd8ff 0, #2b2eec 35%, #161aa1 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .auth-logo-block {
+            margin-bottom: 40px;
+        }
+
+        .brand-eyebrow {
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .brand-title-line1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .brand-title-line2 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .brand-premium {
+            margin-top: 4px;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .brand-sub {
+            margin-top: 18px;
+            font-size: 12px;
+            line-height: 1.6;
+            max-width: 220px;
+            opacity: 0.92;
+        }
+
+        .brand-cta-block {
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .brand-cta-block a {
+            color: #ffffff;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .brand-footer {
+            margin-top: 30px;
+            font-size: 11px;
+            opacity: 0.85;
+        }
+
+        .brand-footer a {
+            color: #ffffff;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+        }
+
+        .auth-login {
+            padding: 40px 40px 36px;
+            background: #ffffff;
+        }
+
+        .login-header {
+            margin-bottom: 24px;
+        }
+
+        .login-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .login-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 11px;
+            border-radius: 6px;
+            border: 1px solid var(--border-soft);
+            background: #f9fbff;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 1px rgba(37, 84, 255, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: #c0c8d8;
+        }
+
+        .form-row-inline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-bottom: 22px;
+        }
+
+        .checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .checkbox input {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid var(--border-soft);
+            accent-color: var(--primary);
+        }
+
+        .link-muted {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link-muted:hover {
+            text-decoration: underline;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 14px 35px rgba(34, 80, 255, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 45px rgba(34, 80, 255, 0.55);
+        }
+
+        .login-extra {
+            margin-top: 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 840px) {
+            body {
+                background: #eef4ff;
+                align-items: flex-start;
+            }
+
+            .auth-shell {
+                padding: 24px 16px;
+            }
+
+            .auth-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .auth-brand {
+                display: none;
+            }
+
+            .auth-login {
+                padding: 28px 22px 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-login {
+                padding-inline: 18px;
+            }
+        }
+    </style>
+</head>
+<body data-page="login">
+<div class="bg-bubbles">
+    <div class="bubble big"></div>
+    <div class="bubble small"></div>
+    <div class="bubble tiny"></div>
+    <div class="bubble blur"></div>
+</div>
+
+<div class="auth-shell">
+    <div class="auth-card">
+        <section class="auth-brand">
+            <div class="auth-logo-block">
+                <div class="brand-eyebrow">Refine Panel</div>
+                <div class="brand-title-line1">Refine</div>
+                <div class="brand-title-line2">Panel</div>
+                <div class="brand-premium">Premium SMS</div>
+                <p class="brand-sub">
+                    Your trusted premium SMS numbers partner. Connect your apps and start earning from OTP and
+                    transactional traffic.
+                </p>
+            </div>
+
+            <div class="brand-cta-block">
+                <p>Don’t have an account?</p>
+                <p><a href="#">Contact us</a> to become a partner.</p>
+            </div>
+
+            <div class="brand-footer">
+                Read our <a href="#">terms</a> and <a href="#">conditions</a>
+            </div>
+        </section>
+
+        <section class="auth-login">
+            <header class="login-header">
+                <h1 class="login-title">Account Login</h1>
+                <p class="login-subtitle">Sign in to access your dashboard and manage SMS routes.</p>
+                <?php if ($error): ?>
+                    <p style="margin-top:8px;font-size:12px;color:#b91c1c;"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
+            </header>
+
+            <form method="post" action="login">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email address</label>
+                    <input class="form-input" type="email" id="email" name="email" placeholder="you@example.com"
+                           value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email'], ENT_QUOTES, 'UTF-8') : ''; ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-input" type="password" id="password" name="password" placeholder="Enter your password">
+                </div>
+
+                <?php if ($loginCaptchaType === 'math'): ?>
+                    <div class="form-group">
+                        <label class="form-label" for="captcha_answer">Captcha: <?php echo htmlspecialchars($loginMathQuestion, ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input class="form-input" type="text" id="captcha_answer" name="captcha_answer" placeholder="Answer">
+                    </div>
+                <?php elseif ($loginCaptchaType === 'google' && $recaptchaSiteKey): ?>
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="form-row-inline">
+                    <label class="checkbox">
+                        <input type="checkbox">
+                        <span>Remember me</span>
+                    </label>
+                    <a class="link-muted" href="#">Forgot password?</a>
+                </div>
+
+                <button class="btn-primary" type="submit">Log in</button>
+
+                <p class="login-extra">
+                    Need an account? <a class="link-muted" href="signup">Sign up</a><br>
+                    Having trouble signing in? <a class="link-muted" href="#">Contact support</a>.
+                </p>
+            </form>
+        </section>
+    </div>
+</div>
+<?php if ($loginCaptchaType === 'google' && $recaptchaSiteKey): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php endif; ?>
+</body>
+</html>
